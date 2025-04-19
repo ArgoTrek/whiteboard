@@ -1,4 +1,3 @@
-// components/comment-list.tsx
 "use client"
 
 import { Comment } from "@/types/database"
@@ -14,6 +13,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/utils/supabase/client"
+import { toast } from "sonner"
 
 interface CommentListProps {
   comments: Comment[]
@@ -56,9 +56,16 @@ export function CommentList({ comments, currentUser, onCommentsChange }: Comment
           return c
         })
         onCommentsChange(updatedComments)
+        
+        if (data.action === "added") {
+          toast.success("You liked this comment")
+        } else {
+          toast.success("You unliked this comment")
+        }
       }
     } catch (error) {
       console.error("Error toggling thumb:", error)
+      toast.error("Failed to update like status")
     } finally {
       setLoadingCommentId(null)
     }
@@ -80,8 +87,10 @@ export function CommentList({ comments, currentUser, onCommentsChange }: Comment
         
         const updatedComments = comments.filter(c => c.id !== comment.id)
         onCommentsChange(updatedComments)
+        toast.success("Comment deleted successfully")
       } catch (error) {
         console.error("Error deleting comment:", error)
+        toast.error("Failed to delete comment")
       }
     }
   }

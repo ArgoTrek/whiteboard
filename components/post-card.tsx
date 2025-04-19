@@ -1,4 +1,3 @@
-// components/post-card.tsx
 "use client"
 
 import { useState } from "react"
@@ -18,6 +17,7 @@ import {
 import { CommentList } from "@/components/comment-list"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+import { toast } from "sonner"
 
 interface PostCardProps {
   post: Post
@@ -46,6 +46,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
         setComments(data.comments)
       } catch (error) {
         console.error("Error loading comments:", error)
+        toast.error("Failed to load comments")
       } finally {
         setIsLoadingComments(false)
       }
@@ -74,13 +75,15 @@ export function PostCard({ post, currentUser }: PostCardProps) {
       if (response.ok) {
         setComments([...comments, data.comment])
         setNewComment("")
+        toast.success("Comment added")
         // Refresh the page to update the post order
         router.refresh()
       } else {
-        alert(data.error || "Failed to add comment")
+        toast.error(data.error || "Failed to add comment")
       }
     } catch (error) {
       console.error("Error adding comment:", error)
+      toast.error("There was an error posting your comment")
     } finally {
       setIsSubmitting(false)
     }
@@ -106,13 +109,16 @@ export function PostCard({ post, currentUser }: PostCardProps) {
         if (data.action === "added") {
           setThumbCount(thumbCount + 1)
           setUserHasThumbed(true)
+          toast.success("You liked this post")
         } else {
           setThumbCount(thumbCount - 1)
           setUserHasThumbed(false)
+          toast.success("You unliked this post")
         }
       }
     } catch (error) {
       console.error("Error toggling thumb:", error)
+      toast.error("Failed to update like status")
     } finally {
       setIsThumbsLoading(false)
     }
@@ -132,9 +138,11 @@ export function PostCard({ post, currentUser }: PostCardProps) {
           throw error
         }
         
+        toast.success("Post deleted successfully")
         router.refresh()
       } catch (error) {
         console.error("Error deleting post:", error)
+        toast.error("Failed to delete post")
       }
     }
   }
@@ -205,6 +213,15 @@ export function PostCard({ post, currentUser }: PostCardProps) {
             </Button>
           </div>
         </div>
+
+        {/* <div className="mt-2 p-2 border border-gray-200 rounded text-xs text-gray-600 dark:text-gray-400 dark:border-gray-700">
+          <div>Post ID: {post.id}</div>
+          <div>Cosmetic ID: #{post.cosmetic_id}</div>
+          <div>Push Count: {post.push_count}</div>
+          <div>Created: {new Date(post.created_at).toLocaleString()}</div>
+          <div>Updated: {new Date(post.updated_at).toLocaleString()}</div>
+          <div>Comments: {post.comment_count}</div>
+        </div> */}
 
         {showComments && (
           <div className="w-full">

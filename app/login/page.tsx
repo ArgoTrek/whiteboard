@@ -1,6 +1,32 @@
+'use client'
+
 import { login, signup } from './actions'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
+import { useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+  const verification = searchParams.get('verification')
+
+  // Show toast notifications based on URL parameters
+  useEffect(() => {
+    if (error) {
+      toast.error(decodeURIComponent(error))
+    }
+    
+    if (verification === 'true') {
+      toast.success(
+        'Check your email for the confirmation link!', 
+        {
+          description: 'You need to verify your email before you can sign in.',
+          duration: 6000
+        }
+      )
+    }
+  }, [error, verification])
+
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md space-y-8 rounded-lg border p-8 shadow-md">

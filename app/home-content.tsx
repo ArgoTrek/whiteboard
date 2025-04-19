@@ -1,4 +1,3 @@
-// app/page.tsx
 import { createClient } from "@/utils/supabase/server"
 import { PostForm } from "@/components/post-form"
 import { PostCard } from "@/components/post-card"
@@ -7,7 +6,7 @@ import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
-export default async function Home({
+export default async function HomeContent({
   searchParams,
 }: {
   searchParams: { page?: string }
@@ -42,16 +41,21 @@ export default async function Home({
     )
   }
   
-  // Get posts with simpler approach
+  // Get posts for the main board
   const { data: postsData } = await supabase
     .from('posts')
-    .select('*')
+    .select(`
+      *,
+      profiles:user_id(id, email),
+      comment_count:comments(count),
+      thumb_count:thumbs(count)
+    `)
     .eq('board_id', mainBoard.id)
     .order('updated_at', { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1)
   
-  // Get user thumbs if logged in
-  let userThumbs: { post_id: string }[] = [];
+  // Get user thumbs for posts
+  let userThumbs: { post_id: string }[] = []
   if (user) {
     const { data: thumbsData } = await supabase
       .from('thumbs')
@@ -59,37 +63,22 @@ export default async function Home({
       .eq('user_id', user.id)
       .is('comment_id', null)
     
-    userThumbs = thumbsData || [];
+    userThumbs = thumbsData || []
   }
   
-  // Process posts to include counts
-  const posts = await Promise.all((postsData || []).map(async (post) => {
-    // Get comment count
-    const { count: commentCount } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('post_id', post.id);
-    
-    // Get thumb count
-    const { count: thumbCount } = await supabase
-      .from('thumbs')
-      .select('*', { count: 'exact', head: true })
-      .eq('post_id', post.id)
-      .is('comment_id', null);
-    
-    const userHasThumbed = user ? userThumbs.some(thumb => thumb.post_id === post.id) : false;
+  // Format posts
+  const posts = postsData?.map(post => {
+    const userHasThumbed = user ? userThumbs.some(thumb => thumb.post_id === post.id) : false
     
     return {
       ...post,
-      author: {
-        id: post.user_id,
-        email: post.author_email || 'Unknown User'
-      },
-      comment_count: commentCount || 0,
-      thumb_count: thumbCount || 0,
+      author: post.profiles,
+      profiles: undefined,
+      comment_count: post.comment_count[0]?.count || 0,
+      thumb_count: post.thumb_count[0]?.count || 0,
       user_has_thumbed: userHasThumbed
-    };
-  }));
+    }
+  }) || []
   
   // Check if there are more posts
   const { count } = await supabase

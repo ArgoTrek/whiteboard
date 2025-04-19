@@ -1,4 +1,3 @@
-// components/post-form.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface PostFormProps {
   boardId: string
@@ -27,6 +27,7 @@ export function PostForm({ boardId }: PostFormProps) {
         setCanPost(data.can_post)
       } catch (error) {
         console.error("Error checking if user can post:", error)
+        toast.error("Couldn't verify if you can post today")
         setCanPost(false)
       } finally {
         setIsLoading(false)
@@ -58,12 +59,14 @@ export function PostForm({ boardId }: PostFormProps) {
       if (response.ok) {
         setContent("")
         setCanPost(false)
+        toast.success("Post created successfully!")
         router.refresh()
       } else {
-        alert(data.error || "Failed to create post")
+        toast.error(data.error || "Failed to create post")
       }
     } catch (error) {
       console.error("Error creating post:", error)
+      toast.error("There was an error creating your post")
     } finally {
       setIsSubmitting(false)
     }

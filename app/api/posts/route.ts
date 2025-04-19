@@ -1,3 +1,4 @@
+// app/api/posts/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -12,15 +13,10 @@ export async function GET(request: Request) {
   // Check if user exists for thumbs status
   const { data: { user } } = await supabase.auth.getUser()
   
-  // Get posts with count of comments and thumbs
+  // Get posts with simpler approach
   const { data, error } = await supabase
     .from('posts')
-    .select(`
-      *,
-      profiles:user_id(id, email),
-      comment_count:comments(count),
-      thumb_count:thumbs(count)
-    `)
+    .select('*')
     .eq('board_id', boardId)
     .order('updated_at', { ascending: false })
     .limit(limit)
@@ -42,21 +38,36 @@ export async function GET(request: Request) {
     userThumbs = thumbsData || [];
   }
   
-  // Format the posts data
-  const posts = data.map(post => {
+  // Get comment counts for each post individually
+  const postsWithCounts = await Promise.all(data.map(async (post) => {
+    // Get comment count
+    const { count: commentCount } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', post.id);
+    
+    // Get thumb count
+    const { count: thumbCount } = await supabase
+      .from('thumbs')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', post.id)
+      .is('comment_id', null);
+    
     const userHasThumbed = user ? userThumbs.some(thumb => thumb.post_id === post.id) : false;
     
     return {
       ...post,
-      author: post.profiles,
-      profiles: undefined,
-      comment_count: post.comment_count[0]?.count || 0,
-      thumb_count: post.thumb_count[0]?.count || 0,
+      author: {
+        id: post.user_id,
+        email: post.author_email || 'Unknown User'
+      },
+      comment_count: commentCount || 0,
+      thumb_count: thumbCount || 0,
       user_has_thumbed: userHasThumbed
     };
-  });
+  }));
   
-  return NextResponse.json({ posts })
+  return NextResponse.json({ posts: postsWithCounts })
 }
 
 export async function POST(request: Request) {
@@ -90,13 +101,14 @@ export async function POST(request: Request) {
     )
   }
   
-  // Create post
+  // Create post with author_email
   const { data, error } = await supabase
     .from('posts')
     .insert([
       {
         board_id,
         user_id: user.id,
+        author_email: user.email, // Store author email directly
         content,
       },
     ])
