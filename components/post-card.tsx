@@ -18,6 +18,7 @@ import { CommentList } from "@/components/comment-list"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
+import Image from "next/image"
 
 interface PostCardProps {
   post: Post
@@ -33,6 +34,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
   const [isThumbsLoading, setIsThumbsLoading] = useState(false)
   const [thumbCount, setThumbCount] = useState(post.thumb_count || 0)
   const [userHasThumbed, setUserHasThumbed] = useState(post.user_has_thumbed || false)
+
   
   const router = useRouter()
   const supabase = createClient()
@@ -138,6 +140,25 @@ export function PostCard({ post, currentUser }: PostCardProps) {
           throw error
         }
         
+        // If post has an image, delete it from storage
+        if (post.image_url) {
+          // Extract the filename from the URL
+          const url = new URL(post.image_url)
+          const pathParts = url.pathname.split('/')
+          const bucketName = pathParts[1] // e.g., 'post-images'
+          const filePath = pathParts.slice(2).join('/') // e.g., 'postId/123456.jpg'
+          
+          // Delete the file from storage
+          const { error: storageError } = await supabase
+            .storage
+            .from(bucketName)
+            .remove([filePath])
+          
+          if (storageError) {
+            console.error('Error deleting image:', storageError)
+          }
+        }
+        
         toast.success("Post deleted successfully")
         router.refresh()
       } catch (error) {
@@ -147,6 +168,8 @@ export function PostCard({ post, currentUser }: PostCardProps) {
     }
   }
 
+
+
   return (
     <Card className="mb-4">
       <CardContent className="pt-6">
@@ -155,7 +178,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
             <Avatar className="h-8 w-8">
               <AvatarImage src={post.author?.avatar_url || ""} />
               <AvatarFallback>
-                {post.author?.email.charAt(0).toUpperCase() || "U"}
+                {(post.author?.username || post.author?.email || "U").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -185,6 +208,17 @@ export function PostCard({ post, currentUser }: PostCardProps) {
         </div>
         <div className="mt-4">
           <p className="whitespace-pre-line">{post.content}</p>
+          
+          {/* Display image if available */}
+          {post.image_url && (
+            <div className="mt-4 flex justify-center">
+              <img 
+                src={post.image_url} 
+                alt="Post attachment" 
+                className="max-h-96 max-w-full h-auto object-contain rounded-md"
+              />
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex flex-col items-start space-y-4 pb-6">
@@ -213,15 +247,6 @@ export function PostCard({ post, currentUser }: PostCardProps) {
             </Button>
           </div>
         </div>
-
-        {/* <div className="mt-2 p-2 border border-gray-200 rounded text-xs text-gray-600 dark:text-gray-400 dark:border-gray-700">
-          <div>Post ID: {post.id}</div>
-          <div>Cosmetic ID: #{post.cosmetic_id}</div>
-          <div>Push Count: {post.push_count}</div>
-          <div>Created: {new Date(post.created_at).toLocaleString()}</div>
-          <div>Updated: {new Date(post.updated_at).toLocaleString()}</div>
-          <div>Comments: {post.comment_count}</div>
-        </div> */}
 
         {showComments && (
           <div className="w-full">

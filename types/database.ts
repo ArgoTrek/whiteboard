@@ -17,13 +17,13 @@ export type Board = {
     push_count: number;
     created_at: string;
     updated_at: string;
-    // Used in frontend
+    image_url?: string;
     author?: Profile;
     comment_count?: number;
     thumb_count?: number;
     user_has_thumbed?: boolean;
   };
-  
+
   export type Comment = {
     id: string;
     post_id: string;
@@ -60,6 +60,7 @@ export type Board = {
   export type Profile = {
     id: string;
     email: string;
+    username?: string;
     avatar_url?: string;
   };
   

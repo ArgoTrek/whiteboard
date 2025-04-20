@@ -108,7 +108,7 @@ export function CommentList({ comments, currentUser, onCommentsChange }: Comment
               <Avatar className="h-6 w-6">
                 <AvatarImage src={comment.author?.avatar_url || ""} />
                 <AvatarFallback>
-                  {comment.author?.email.charAt(0).toUpperCase() || "U"}
+                  {(comment.author?.username || comment.author?.email || "U").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
