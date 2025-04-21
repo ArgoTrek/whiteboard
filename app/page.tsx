@@ -62,7 +62,7 @@ export default async function Home({
     userThumbs = thumbsData || [];
   }
   
-  // Process posts to include counts
+  // Process posts to include counts and author profiles
   const posts = await Promise.all((postsData || []).map(async (post) => {
     // Get comment count
     const { count: commentCount } = await supabase
@@ -77,13 +77,22 @@ export default async function Home({
       .eq('post_id', post.id)
       .is('comment_id', null);
     
+    // Get author profile with avatar_url
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', post.user_id)
+      .single();
+    
     const userHasThumbed = user ? userThumbs.some(thumb => thumb.post_id === post.id) : false;
     
     return {
       ...post,
       author: {
         id: post.user_id,
-        email: post.author_email || 'Unknown User'
+        email: post.author_email || 'Unknown User',
+        username: authorProfile?.username,
+        avatar_url: authorProfile?.avatar_url
       },
       comment_count: commentCount || 0,
       thumb_count: thumbCount || 0,

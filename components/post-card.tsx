@@ -182,7 +182,9 @@ export function PostCard({ post, currentUser }: PostCardProps) {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{post.author?.email}</p>
+              <p className="text-sm font-medium">
+                {post.author?.username || post.author?.email}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {formatDate(post.created_at)}
               </p>

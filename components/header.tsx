@@ -25,9 +25,23 @@ export function Header() {
       setIsLoading(false)
       if (!error && data.user) {
         setUser(data.user)
+        
+        // Fetch user profile to get avatar_url
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileData) {
+          setUser({
+            ...data.user,
+            profile: profileData
+          });
+        }
       }
     }
-
+  
     getUser()
   }, [])
 
@@ -54,7 +68,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.user_metadata?.avatar_url || ""} alt={user.user_metadata?.username || user.email} />
+                    <AvatarImage src={user.profile?.avatar_url || ""} alt={user.user_metadata?.username || user.email} />
                     <AvatarFallback>
                       {(user.user_metadata?.username || user.email)?.charAt(0).toUpperCase()}
                     </AvatarFallback>

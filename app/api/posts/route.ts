@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     userThumbs = thumbsData || [];
   }
   
-  // Get comment counts for each post individually
+  // Get comment counts for each post individually and include author profiles
   const postsWithCounts = await Promise.all(data.map(async (post) => {
     // Get comment count
     const { count: commentCount } = await supabase
@@ -53,13 +53,22 @@ export async function GET(request: Request) {
       .eq('post_id', post.id)
       .is('comment_id', null);
     
+    // Get author profile with avatar_url
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', post.user_id)
+      .single();
+    
     const userHasThumbed = user ? userThumbs.some(thumb => thumb.post_id === post.id) : false;
     
     return {
       ...post,
       author: {
         id: post.user_id,
-        email: post.author_email || 'Unknown User'
+        email: post.author_email || 'Unknown User',
+        username: authorProfile?.username,
+        avatar_url: authorProfile?.avatar_url
       },
       comment_count: commentCount || 0,
       thumb_count: thumbCount || 0,
@@ -118,5 +127,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   
-  return NextResponse.json({ post: data[0] })
+  // Get author profile with avatar_url for the response
+  const { data: authorProfile } = await supabase
+    .from('profiles')
+    .select('username, avatar_url')
+    .eq('id', user.id)
+    .single();
+  
+  // Return post with author information including avatar_url
+  const post = {
+    ...data[0],
+    author: {
+      id: user.id,
+      email: user.email,
+      username: authorProfile?.username,
+      avatar_url: authorProfile?.avatar_url
+    },
+    comment_count: 0,
+    thumb_count: 0,
+    user_has_thumbed: false
+  };
+  
+  return NextResponse.json({ post })
 }

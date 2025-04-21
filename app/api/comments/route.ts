@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     userThumbs = thumbsData || [];
   }
   
-  // Process comments to include thumb counts
+  // Process comments to include thumb counts and author profiles
   const commentsWithCounts = await Promise.all(data.map(async (comment) => {
     // Get thumb count
     const { count: thumbCount } = await supabase
@@ -43,13 +43,22 @@ export async function GET(request: Request) {
       .eq('comment_id', comment.id)
       .is('post_id', null);
     
+    // Get author profile with avatar_url
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', comment.user_id)
+      .single();
+    
     const userHasThumbed = user ? userThumbs.some(thumb => thumb.comment_id === comment.id) : false;
     
     return {
       ...comment,
       author: {
         id: comment.user_id,
-        email: comment.author_email || 'Unknown User'
+        email: comment.author_email || 'Unknown User',
+        username: authorProfile?.username,
+        avatar_url: authorProfile?.avatar_url
       },
       thumb_count: thumbCount || 0,
       user_has_thumbed: userHasThumbed
@@ -132,6 +141,13 @@ export async function POST(request: Request) {
     .eq('id', post_id)
     .single();
   
+  // Get author profile information including avatar_url
+  const { data: authorProfile } = await supabase
+    .from('profiles')
+    .select('username, avatar_url')
+    .eq('id', user.id)
+    .single();
+  
   console.log('Updated post data:', postData);
   
   // Format the comment for response with debug info
@@ -139,7 +155,9 @@ export async function POST(request: Request) {
     ...data[0],
     author: {
       id: user.id,
-      email: user.email
+      email: user.email,
+      username: authorProfile?.username,
+      avatar_url: authorProfile?.avatar_url
     },
     thumb_count: thumbCount || 0,
     user_has_thumbed: false,

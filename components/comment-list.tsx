@@ -112,7 +112,9 @@ export function CommentList({ comments, currentUser, onCommentsChange }: Comment
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium">{comment.author?.email}</p>
+                <p className="text-sm font-medium">
+                  {comment.author?.username || comment.author?.email}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {formatDate(comment.created_at)}
                 </p>

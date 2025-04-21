@@ -4,6 +4,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { createServiceClient } from '@/utils/supabase/service-server'
+import { signupSchema } from '@/lib/validations'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -27,81 +29,67 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const username = formData.get('username') as string
+
+  // Validate with Zod
+  const result = signupSchema.safeParse({ email, password, username })
+
+  if (!result.success) {
+    // Get the first error message
+    const fieldErrors = result.error.flatten().fieldErrors;
+    // Define the possible field names based on the schema
+    type FieldErrorKeys = keyof typeof fieldErrors;
+    const firstErrorField = Object.keys(fieldErrors)[0] as FieldErrorKeys;
+    const firstErrorMessage = fieldErrors[firstErrorField]?.[0] || 'Invalid form data';
+    
+    return redirect(`/login?error=${encodeURIComponent(firstErrorMessage)}`);
+  }
+
   const supabase = await createClient()
+  const serviceClient = createServiceClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-    username: formData.get('username') as string,
-  }
-
-  // Validate username
-  if (!data.username || data.username.trim() === '') {
-    return redirect(`/login?error=${encodeURIComponent('Username is required')}`)
-  }
-
-  if (data.username.length < 3) {
-    return redirect(`/login?error=${encodeURIComponent('Username must be at least 3 characters')}`)
-  }
-
-  if (data.username.length > 20) {
-    return redirect(`/login?error=${encodeURIComponent('Username must be less than 20 characters')}`)
-  }
-
-  // Check if username is already taken
-  const { data: existingUser, error: checkError } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('username', data.username)
-    .single()
-
-  if (existingUser) {
-    return redirect(`/login?error=${encodeURIComponent('Username is already taken')}`)
-  }
-
-  if (checkError && checkError.code !== 'PGRST116') {
-    return redirect(`/login?error=${encodeURIComponent('Error checking username: ' + checkError.message)}`)
-  }
-
-  // Sign up the user
-  const { error, data: authData } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
+  // Create the auth user using regular client
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-      data: {
-        username: data.username,
-      },
-    },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+    }
   })
 
-  if (error) {
-    return redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  if (authError) {
+    console.error('Auth signup error:', authError)
+    redirect(`/login?error=${encodeURIComponent(authError.message)}`)
   }
 
-  // Create or update the profile
-  if (authData.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: authData.user.id,
-        email: data.email,
-        username: data.username,
-        updated_at: new Date().toISOString(),
-      })
-
-    if (profileError) {
-      console.error('Error updating profile:', profileError)
-    }
+  if (!authData?.user) {
+    console.error('No user returned from signup')
+    redirect(`/login?error=${encodeURIComponent('Error creating user')}`)
   }
 
-  // Check if email confirmation is required
-  if (authData?.user?.identities?.length === 0 || authData?.user?.confirmed_at === null) {
-    return redirect('/login?verification=true')
+  console.log('Auth user created:', authData.user.id)
+  
+  // Create the profile using service client to bypass RLS
+  const { error: profileError } = await serviceClient
+    .from('profiles')
+    .insert({
+      id: authData.user.id,
+      email: email,
+      username: username,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+
+  if (profileError) {
+    console.error('Error creating profile:', profileError)
+    // Continue anyway since auth user is created
+  } else {
+    console.log('Profile created for user:', authData.user.id)
   }
 
-  revalidatePath('/', 'layout')
-  return redirect('/')
+  // Redirect to verification page
+  console.log('Email verification required')
+  redirect('/login?verification=true')
 }
