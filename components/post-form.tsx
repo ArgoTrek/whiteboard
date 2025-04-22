@@ -6,10 +6,27 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ImagePlus, X } from "lucide-react"
+import { ImagePlus, X, PaintBucket, Sparkles } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface PostFormProps {
   boardId: string
+}
+
+interface Flair {
+  id: string
+  name: string
+  type: string
+  rarity: string
+  css_class: string
 }
 
 export function PostForm({ boardId }: PostFormProps) {
@@ -20,8 +37,12 @@ export function PostForm({ boardId }: PostFormProps) {
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [inventory, setInventory] = useState<any[]>([])
+  const [selectedFlair, setSelectedFlair] = useState<Flair | null>(null)
+  const [loadingInventory, setLoadingInventory] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
     async function checkCanPost() {
@@ -30,6 +51,11 @@ export function PostForm({ boardId }: PostFormProps) {
         const response = await fetch("/api/user/can-post")
         const data = await response.json()
         setCanPost(data.can_post)
+        
+        // If user can post, also load their flair inventory
+        if (data.can_post) {
+          fetchInventory()
+        }
       } catch (error) {
         console.error("Error checking if user can post:", error)
         toast.error("Couldn't verify if you can post today")
@@ -41,6 +67,25 @@ export function PostForm({ boardId }: PostFormProps) {
 
     checkCanPost()
   }, [])
+
+  const fetchInventory = async () => {
+    try {
+      setLoadingInventory(true)
+      const response = await fetch('/api/engagement/inventory')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch inventory')
+      }
+      
+      const data = await response.json()
+      setInventory(data.inventory)
+    } catch (error) {
+      console.error('Error fetching inventory:', error)
+      toast.error('Failed to load your flair inventory')
+    } finally {
+      setLoadingInventory(false)
+    }
+  }
 
   // Handle file selection
   const handleFileChange = (file: File | null) => {
@@ -141,6 +186,43 @@ export function PostForm({ boardId }: PostFormProps) {
     }
   }
 
+  // Get rarity color for flair display
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'common':
+        return 'text-gray-600 dark:text-gray-300'
+      case 'rare':
+        return 'text-blue-600 dark:text-blue-300'
+      case 'epic':
+        return 'text-purple-600 dark:text-purple-300'
+      case 'legendary':
+        return 'text-amber-600 dark:text-amber-300'
+      default:
+        return 'text-gray-600 dark:text-gray-300'
+    }
+  }
+
+  // Group inventory by type for dropdown
+  const groupedInventory = inventory.reduce((acc, item) => {
+    const type = item.flair.type
+    if (!acc[type]) {
+      acc[type] = []
+    }
+    acc[type].push(item)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  // Select a flair to apply to the post
+  const handleSelectFlair = (flair: Flair) => {
+    setSelectedFlair(flair)
+    toast.success(`Selected flair: ${flair.name}`)
+  }
+
+  // Remove selected flair
+  const handleRemoveFlair = () => {
+    setSelectedFlair(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!content.trim() || isSubmitting) return
@@ -156,6 +238,7 @@ export function PostForm({ boardId }: PostFormProps) {
         body: JSON.stringify({
           board_id: boardId,
           content,
+          flair_id: selectedFlair?.id // Include the selected flair ID
         }),
       })
 
@@ -190,6 +273,7 @@ export function PostForm({ boardId }: PostFormProps) {
       setContent("")
       setImage(null)
       setImagePreview(null)
+      setSelectedFlair(null)
       setCanPost(false)
       toast.success("Post created successfully!")
       router.refresh()
@@ -285,6 +369,79 @@ export function PostForm({ boardId }: PostFormProps) {
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
           </div>
+          
+          {/* Flair Selection */}
+          <div className="border rounded-md p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-medium">Post Flair (Optional)</h3>
+              {
+                loadingInventory ? (
+                  <div className="text-xs text-gray-500">Loading flairs...</div>
+                ) : inventory.length === 0 ? (
+                  <div className="text-xs text-gray-500">You don't have any flairs yet</div>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">
+                        <PaintBucket className="h-3 w-3 mr-1" />
+                        <span>Select Flair</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>Choose Flair</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      {Object.entries(groupedInventory).map(([type, items]) => (
+                        <div key={type}>
+                          <DropdownMenuLabel className="text-xs text-gray-500 capitalize">
+                            {type}
+                          </DropdownMenuLabel>
+                          
+                          {items.map(item => (
+                            <DropdownMenuItem 
+                              key={item.id}
+                              onClick={() => handleSelectFlair(item.flair)}
+                              className={getRarityColor(item.flair.rarity)}
+                            >
+                              <FlairIcon type={item.flair.type} />
+                              <span className="ml-1">{item.flair.name}</span>
+                            </DropdownMenuItem>
+                          ))}
+                          
+                          <DropdownMenuSeparator />
+                        </div>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )
+              }
+            </div>
+            
+            {/* Selected Flair Display */}
+            {selectedFlair && (
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-md p-2">
+                <div className="flex items-center">
+                  <FlairIcon type={selectedFlair.type} />
+                  <span className={`ml-2 text-sm ${getRarityColor(selectedFlair.rarity)}`}>
+                    {selectedFlair.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveFlair}
+                  className="text-gray-500 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            
+            {!selectedFlair && (
+              <p className="text-xs text-gray-500">
+                Select a flair to apply to your post. Flairs can only be applied when creating a post.
+              </p>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="flex justify-between">
           <p className="text-xs text-gray-500">
@@ -297,4 +454,22 @@ export function PostForm({ boardId }: PostFormProps) {
       </form>
     </Card>
   )
+}
+
+// Helper component to render appropriate icon for flair type
+function FlairIcon({ type }: { type: string }) {
+  switch (type) {
+    case 'border':
+      return <PaintBucket className="h-3 w-3" />
+    case 'background':
+      return <div className="h-3 w-3 bg-blue-200 dark:bg-blue-800 rounded-sm" />
+    case 'effect':
+      return <Sparkles className="h-3 w-3" />
+    case 'badge':
+      return <div className="h-3 w-3 rounded-full bg-amber-200 dark:bg-amber-800" />
+    case 'trim':
+      return <div className="h-3 w-3 border border-gray-400 dark:border-gray-600" />
+    default:
+      return <Sparkles className="h-3 w-3" />
+  }
 }

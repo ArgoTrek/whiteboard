@@ -17,9 +17,17 @@ export default async function ProfilePageContainer() {
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, avatar_url, email')
+    .select('id, username, avatar_url, email') // Added 'id'
     .eq('id', user.id)
     .single()
 
-  return <ProfilePage user={user} profile={profile || { username: user.email, avatar_url: null, email: user.email }} />
+  // Ensure profile has the required fields, providing a fallback with id
+  const profileData = profile || { 
+    id: user.id, // Added id
+    username: user.email, 
+    avatar_url: null, 
+    email: user.email 
+  }
+
+  return <ProfilePage user={user} profile={profileData} />
 }

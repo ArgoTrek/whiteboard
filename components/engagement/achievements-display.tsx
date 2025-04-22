@@ -7,32 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Award, Medal, Star, CheckCircle2, LucideIcon, User, 
   Flame, Calendar, MessageSquare, Trophy, CircleDollarSign,
-  Sparkles, MoreHorizontal
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useAchievement } from '@/components/achievements/achievement-context'
-
-interface Achievement {
-  id: string
-  name: string
-  description: string
-  category: string
-  required_progress: number
-  current_progress: number
-  completed: boolean
-  completed_at: string | null
-  reward_claimed: boolean
-  progress_percentage: number
-  ink_reward: number
-  prismatic_reward: number
-  flair_reward: string | null
-  icon: string | null
-}
+import { Achievement, Currency } from '@/types/database'
 
 interface AchievementsDisplayProps {
   className?: string
-  onCurrencyUpdate?: (currency: { ink_points: number; prismatic_ink: number }) => void
+  onCurrencyUpdate?: (currency: Currency) => void
 }
 
 export function AchievementsDisplay({ className, onCurrencyUpdate }: AchievementsDisplayProps) {

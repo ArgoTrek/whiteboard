@@ -7,20 +7,14 @@ import { CheckCircle2, Circle, CalendarDays, Flame } from 'lucide-react'
 import { useAchievement } from '@/components/achievements/achievement-context'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-interface ActivityStatus {
-  check_in: boolean
-  posted: boolean
-  commented: boolean
-  liked: boolean
-  all_completed: boolean
-}
+import { ActivityStatus, Currency } from '@/types/database'
 
 interface DailyActivitiesProps {
   className?: string
+  onCurrencyUpdate?: (currency: Currency) => void
 }
 
-export function DailyActivities({ className }: DailyActivitiesProps) {
+export function DailyActivities({ className, onCurrencyUpdate }: DailyActivitiesProps) {
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
   const [activities, setActivities] = useState<ActivityStatus>({
@@ -31,7 +25,7 @@ export function DailyActivities({ className }: DailyActivitiesProps) {
     all_completed: false
   })
   const [streak, setStreak] = useState(0)
-  const [currency, setCurrency] = useState({ ink_points: 0, prismatic_ink: 0 })
+  const [currency, setCurrency] = useState<Currency>({ ink_points: 0, prismatic_ink: 0 })
   
   const { showAchievement } = useAchievement()
 
@@ -53,6 +47,11 @@ export function DailyActivities({ className }: DailyActivitiesProps) {
       setActivities(data.activities)
       setStreak(data.streak)
       setCurrency(data.currency)
+      
+      // Notify parent component of currency update if callback provided
+      if (onCurrencyUpdate) {
+        onCurrencyUpdate(data.currency)
+      }
     } catch (error) {
       console.error('Error fetching activities:', error)
       toast.error('Failed to load daily activities')
@@ -88,6 +87,11 @@ export function DailyActivities({ className }: DailyActivitiesProps) {
         
         // Show success notification
         toast.success(`Day ${data.streak} streak! +10 Ink Points`)
+        
+        // Notify parent component of currency update if callback provided
+        if (onCurrencyUpdate) {
+          onCurrencyUpdate(data.currency)
+        }
         
         // Show achievement if it's a milestone streak
         if (data.streak === 7) {

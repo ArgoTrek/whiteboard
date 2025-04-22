@@ -18,7 +18,6 @@ import { CommentList } from "@/components/comment-list"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
-import Image from "next/image"
 import { PostFlairDisplay } from "@/components/engagement/post-flair-display"
 
 interface PostCardProps {
@@ -169,11 +168,11 @@ export function PostCard({ post, currentUser }: PostCardProps) {
     }
   }
 
-
-
   return (
     <Card className="mb-4">
+      {/* Integrate PostFlairDisplay at the top of the card */}
       <PostFlairDisplay postId={post.id} userId={currentUser?.id} />
+      
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">

@@ -45,14 +45,16 @@ export async function GET() {
       )
     }
     
-    // Get user's applied flairs
+    // Get user's applied flairs - THIS IS THE FIX:
+    // Adding 'posts!inner (user_id)' to include the posts table in the select
     const { data: appliedFlairs, error: flairsError } = await supabase
       .from('post_flairs')
       .select(`
         id,
         post_id,
         flair_id,
-        applied_at
+        applied_at,
+        posts!inner (user_id)
       `)
       .eq('posts.user_id', user.id)
       .order('applied_at', { ascending: false })
@@ -67,13 +69,13 @@ export async function GET() {
       acquired_at: item.acquired_at,
       flair: item.flair_items,
       applied_to: appliedFlairs 
-        ? appliedFlairs.filter(f => f.flair_id === item.flair_items[0].id).map(f => f.post_id)
+        ? appliedFlairs.filter(f => f.flair_id === item.flair_items.id).map(f => f.post_id)
         : []
     }))
     
     // Group by type for easier UI rendering
     const groupedInventory = formattedInventory.reduce((acc, item) => {
-      const type = item.flair[0].type
+      const type = item.flair.type
       if (!acc[type]) {
         acc[type] = []
       }

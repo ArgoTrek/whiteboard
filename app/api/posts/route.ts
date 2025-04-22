@@ -2,6 +2,9 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+// First Post achievement ID from the database
+const FIRST_POST_ACHIEVEMENT_ID = '05cfca09-1237-4649-bf87-93b5a3046482'
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const boardId = searchParams.get('board_id') || ''
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
     )
   }
   
-  const { board_id, content } = await request.json()
+  const { board_id, content, flair_id } = await request.json()
   
   if (!board_id || !content) {
     return NextResponse.json(
@@ -110,43 +113,138 @@ export async function POST(request: Request) {
     )
   }
   
-  // Create post with author_email
-  const { data, error } = await supabase
-    .from('posts')
-    .insert([
-      {
-        board_id,
-        user_id: user.id,
-        author_email: user.email, // Store author email directly
-        content,
+  try {
+    // If a flair was selected, verify that the user owns this flair
+    if (flair_id) {
+      // Check if user owns this flair
+      const { data: inventoryItem, error: inventoryError } = await supabase
+        .from('user_inventory')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('flair_id', flair_id)
+        .single()
+      
+      if (inventoryError) {
+        return NextResponse.json(
+          { error: 'You do not own this flair' },
+          { status: 403 }
+        )
+      }
+    }
+    
+    // Create post with author_email
+    const { data, error } = await supabase
+      .from('posts')
+      .insert([
+        {
+          board_id,
+          user_id: user.id,
+          author_email: user.email,
+          content,
+        },
+      ])
+      .select()
+    
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    
+    const post = data[0]
+    
+    // If a flair was selected, apply it to the post
+    if (flair_id) {
+      const { error: flairError } = await supabase
+        .from('post_flairs')
+        .insert([{
+          post_id: post.id,
+          flair_id,
+          applied_at: new Date().toISOString()
+        }])
+      
+      if (flairError) {
+        console.error('Error applying flair to post:', flairError)
+        // We don't return an error here because the post was already created
+        // Instead we'll log it and continue without the flair
+      }
+    }
+    
+    // Check if this is the user's first post - if so, award the achievement
+    try {
+      // Count user's posts
+      const { count, error: countError } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      if (!countError && count === 1) {
+        // This is their first post, award the achievement
+        
+        // First check if they already have this achievement (shouldn't happen but just in case)
+        const { data: existingAchievement, error: checkError } = await supabase
+          .from('user_achievements')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('achievement_id', FIRST_POST_ACHIEVEMENT_ID)
+          .maybeSingle()
+        
+        // Only proceed if they don't already have the achievement
+        if (!checkError && !existingAchievement) {
+          const now = new Date().toISOString()
+          
+          // Create the achievement entry
+          const { error: achievementError } = await supabase
+            .from('user_achievements')
+            .insert([{
+              user_id: user.id,
+              achievement_id: FIRST_POST_ACHIEVEMENT_ID,
+              current_progress: 1,
+              completed: true,
+              completed_at: now,
+              reward_claimed: false,
+              created_at: now,
+              updated_at: now
+            }])
+          
+          if (achievementError) {
+            console.error('Error awarding first post achievement:', achievementError)
+          } else {
+            console.log('First Post achievement awarded to user:', user.id)
+          }
+        }
+      }
+    } catch (achievementError) {
+      // Log achievement errors but don't fail the post creation
+      console.error('Error processing achievement logic:', achievementError)
+    }
+    
+    // Get author profile with avatar_url for the response
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', user.id)
+      .single();
+    
+    // Return post with author information including avatar_url
+    const postWithDetails = {
+      ...post,
+      author: {
+        id: user.id,
+        email: user.email,
+        username: authorProfile?.username,
+        avatar_url: authorProfile?.avatar_url
       },
-    ])
-    .select()
+      comment_count: 0,
+      thumb_count: 0,
+      user_has_thumbed: false
+    };
+    
+    return NextResponse.json({ post: postWithDetails })
   
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error('Error creating post:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to create post' },
+      { status: 500 }
+    )
   }
-  
-  // Get author profile with avatar_url for the response
-  const { data: authorProfile } = await supabase
-    .from('profiles')
-    .select('username, avatar_url')
-    .eq('id', user.id)
-    .single();
-  
-  // Return post with author information including avatar_url
-  const post = {
-    ...data[0],
-    author: {
-      id: user.id,
-      email: user.email,
-      username: authorProfile?.username,
-      avatar_url: authorProfile?.avatar_url
-    },
-    comment_count: 0,
-    thumb_count: 0,
-    user_has_thumbed: false
-  };
-  
-  return NextResponse.json({ post })
 }

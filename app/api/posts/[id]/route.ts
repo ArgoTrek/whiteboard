@@ -2,6 +2,50 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+// Add GET method to fetch a single post
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const postId = params.id
+  if (!postId) {
+    return NextResponse.json({ error: 'Post ID is required' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+  
+  // Get the post
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', postId)
+    .single()
+  
+  if (postError) {
+    return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+  }
+  
+  // Get author profile with avatar_url
+  const { data: authorProfile } = await supabase
+    .from('profiles')
+    .select('username, avatar_url')
+    .eq('id', post.user_id)
+    .single();
+  
+  // Format the post for response
+  const formattedPost = {
+    ...post,
+    author: {
+      id: post.user_id,
+      email: post.author_email || 'Unknown User',
+      username: authorProfile?.username,
+      avatar_url: authorProfile?.avatar_url
+    }
+  };
+  
+  return NextResponse.json({ post: formattedPost })
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }

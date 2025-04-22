@@ -1,4 +1,3 @@
-// components/header.tsx
 "use client"
 
 import Link from "next/link"
@@ -13,10 +12,12 @@ import {
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu"
 import { Button } from "./ui/button"
+import { Currency } from "@/types/database"
 
 export function Header() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [currency, setCurrency] = useState<Currency>({ ink_points: 0, prismatic_ink: 0 })
   const supabase = createClient()
 
   useEffect(() => {
@@ -38,6 +39,19 @@ export function Header() {
             ...data.user,
             profile: profileData
           });
+        }
+
+        // Fetch currency information
+        try {
+          const response = await fetch('/api/engagement/activities')
+          if (response.ok) {
+            const data = await response.json()
+            if (data.currency) {
+              setCurrency(data.currency)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching currency:', error)
         }
       }
     }
@@ -64,26 +78,40 @@ export function Header() {
           {isLoading ? (
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700"></div>
           ) : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.profile?.avatar_url || ""} alt={user.user_metadata?.username || user.email} />
-                    <AvatarFallback>
-                      {(user.user_metadata?.username || user.email)?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link href="/profile" className="w-full">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              {/* Currency display */}
+              <div className="hidden md:flex items-center space-x-3 text-sm">
+                <div className="flex items-center text-blue-600 dark:text-blue-400">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-1.5"></div>
+                  <span>{currency.ink_points}</span>
+                </div>
+                <div className="flex items-center text-purple-600 dark:text-purple-400">
+                  <div className="w-3 h-3 rounded-full bg-purple-500 mr-1.5"></div>
+                  <span>{currency.prismatic_ink}</span>
+                </div>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.profile?.avatar_url || ""} alt={user.user_metadata?.username || user.email} />
+                      <AvatarFallback>
+                        {(user.user_metadata?.username || user.email)?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Link href="/profile" className="w-full">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <div className="space-x-2">
               <Link href="/login">

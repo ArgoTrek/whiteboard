@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Award, Star, X, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 export interface Achievement {
   id: string
@@ -180,13 +181,15 @@ export function AchievementToast({
               </div>
               
               {/* Go to profile button */}
-              <button 
-                onClick={handleClose}
-                className="w-full flex items-center justify-center space-x-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-2"
-              >
-                <span>View in Achievements</span>
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              <Link href="/profile?tab=achievements">
+                <button 
+                  onClick={handleClose}
+                  className="w-full flex items-center justify-center space-x-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-2"
+                >
+                  <span>View in Achievements</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </Link>
             </div>
           </div>
         </motion.div>

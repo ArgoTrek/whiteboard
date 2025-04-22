@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     
     // Group by type for easier CSS application
     const flairsByType = formattedFlairs.reduce((acc, item) => {
-      const type = item.flair[0].type
+      const type = item.flair.type
       if (!acc[type]) {
         acc[type] = []
       }
