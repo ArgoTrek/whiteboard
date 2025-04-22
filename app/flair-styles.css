@@ -1,0 +1,220 @@
+/* app/flair-styles.css */
+
+/* Border flairs */
+.flair-border-basic {
+    @apply border-2 border-gray-300 dark:border-gray-600;
+  }
+  
+  .flair-border-dotted {
+    @apply border-2 border-dotted border-gray-500 dark:border-gray-400;
+  }
+  
+  .flair-border-dashed {
+    @apply border-2 border-dashed border-gray-500 dark:border-gray-400;
+  }
+  
+  .flair-border-double {
+    @apply border-4 border-double border-gray-500 dark:border-gray-400;
+  }
+  
+  .flair-border-glow {
+    @apply border-2 border-blue-400 dark:border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] dark:shadow-[0_0_10px_rgba(59,130,246,0.5)];
+  }
+  
+  .flair-border-rainbow {
+    @apply border-2 relative;
+    border-image: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff) 1;
+    animation: rainbow-border 6s linear infinite;
+  }
+  
+  .flair-border-pulse {
+    @apply border-2 border-purple-500 dark:border-purple-400;
+    animation: pulse-border 2s infinite;
+  }
+  
+  @keyframes rainbow-border {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+  }
+  
+  @keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6); }
+    70% { box-shadow: 0 0 0 7px rgba(139, 92, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  }
+  
+  /* Background flairs */
+  .flair-bg-grid {
+    @apply bg-white dark:bg-gray-900;
+    background-image: 
+      linear-gradient(rgba(200, 200, 200, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200, 200, 200, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .flair-bg-gradient {
+    @apply bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20;
+  }
+  
+  .flair-bg-polkadot {
+    @apply bg-white dark:bg-gray-900;
+    background-image: radial-gradient(rgba(200, 200, 200, 0.2) 2px, transparent 2px);
+    background-size: 20px 20px;
+  }
+  
+  .flair-bg-stars {
+    @apply bg-blue-50 dark:bg-blue-900/10;
+    background-image: 
+      radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px),
+      radial-gradient(rgba(255, 255, 255, 0.3) 2px, transparent 2px),
+      radial-gradient(rgba(255, 255, 255, 0.2) 3px, transparent 3px);
+    background-size: 100px 100px, 150px 150px, 200px 200px;
+    background-position: 
+      0 0,
+      30px 30px,
+      60px 60px;
+  }
+  
+  .flair-bg-holographic {
+    @apply relative overflow-hidden;
+    background: linear-gradient(45deg, #f3f4f6, #e5e7eb, #d1d5db, #e5e7eb);
+    background-size: 400% 400%;
+    animation: holographic 8s ease infinite;
+  }
+  
+  @keyframes holographic {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Effect flairs */
+  .flair-effect-highlight {
+    @apply bg-yellow-50 dark:bg-yellow-900/10;
+  }
+  
+  .flair-effect-shadow {
+    @apply shadow-lg;
+  }
+  
+  .flair-effect-sparkle {
+    @apply relative;
+  }
+  
+  .flair-effect-sparkle::before,
+  .flair-effect-sparkle::after {
+    content: "";
+    @apply absolute w-2 h-2 rounded-full bg-yellow-300 opacity-0;
+    animation: sparkle 5s ease infinite;
+  }
+  
+  .flair-effect-sparkle::before {
+    top: 10%;
+    left: 7%;
+    animation-delay: 0s;
+  }
+  
+  .flair-effect-sparkle::after {
+    top: 15%;
+    right: 5%;
+    animation-delay: 2.5s;
+  }
+  
+  @keyframes sparkle {
+    0% { transform: scale(0); opacity: 0; }
+    20% { transform: scale(1.2); opacity: 0.7; }
+    40% { transform: scale(0.8); opacity: 0.3; }
+    60% { transform: scale(1); opacity: 0.5; }
+    80% { transform: scale(0.5); opacity: 0.2; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  
+  .flair-effect-confetti {
+    @apply relative overflow-hidden;
+  }
+  
+  .flair-effect-confetti::before {
+    content: "";
+    @apply absolute inset-0 pointer-events-none;
+    background-image: 
+      radial-gradient(#ff8a8a 2px, transparent 2px),
+      radial-gradient(#8aacff 2px, transparent 2px),
+      radial-gradient(#9dff8a 2px, transparent 2px),
+      radial-gradient(#ffcc8a 2px, transparent 2px),
+      radial-gradient(#8ac4ff 2px, transparent 2px);
+    background-size: 50px 50px;
+    background-position: 
+      0 0,
+      10px 10px,
+      20px 20px,
+      30px 30px,
+      40px 40px;
+    animation: confetti 15s linear infinite;
+  }
+  
+  @keyframes confetti {
+    0% { background-position: 0 0, 10px 10px, 20px 20px, 30px 30px, 40px 40px; }
+    100% { background-position: 50px 50px, 60px 60px, 70px 70px, 80px 80px, 90px 90px; }
+  }
+  
+  /* Badge flairs */
+  .flair-badge-newcomer {
+    @apply relative;
+  }
+  
+  .flair-badge-newcomer::before {
+    content: "👋";
+    @apply absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center text-xs;
+  }
+  
+  .flair-badge-regular {
+    @apply relative;
+  }
+  
+  .flair-badge-regular::before {
+    content: "⭐";
+    @apply absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center text-xs;
+  }
+  
+  .flair-badge-expert {
+    @apply relative;
+  }
+  
+  .flair-badge-expert::before {
+    content: "🏆";
+    @apply absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center text-xs;
+  }
+  
+  .flair-badge-legend {
+    @apply relative;
+  }
+  
+  .flair-badge-legend::before {
+    content: "👑";
+    @apply absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center text-xs;
+  }
+  
+  /* Trim flairs */
+  .flair-trim-basic {
+    @apply p-1;
+  }
+  
+  .flair-trim-elegant {
+    @apply p-2 border border-gray-200 dark:border-gray-700 rounded-md;
+  }
+  
+  .flair-trim-regal {
+    @apply p-2 border-2 border-purple-200 dark:border-purple-700 rounded-md;
+    background-image: 
+      linear-gradient(45deg, transparent 10px, rgba(147, 51, 234, 0.1) 10px, transparent 20px),
+      linear-gradient(-45deg, transparent 10px, rgba(147, 51, 234, 0.1) 10px, transparent 20px);
+    background-size: 20px 20px;
+  }
+  
+  .flair-trim-royal {
+    @apply p-3 border-4 border-amber-200 dark:border-amber-700 rounded-md;
+    background-image: 
+      linear-gradient(45deg, transparent 15px, rgba(245, 158, 11, 0.1) 15px, transparent 30px),
+      linear-gradient(-45deg, transparent 15px, rgba(245, 158, 11, 0.1) 15px, transparent 30px);
+    background-size: 30px 30px;
+  }
